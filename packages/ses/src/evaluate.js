@@ -35,6 +35,18 @@ export const performEval = (
     knownScopeProxies = new WeakSet(),
   } = {},
 ) => {
+  const scopeHandler = createScopeHandler(globalObject, localObject, {
+    sloppyGlobalsMode,
+  });
+  const scopeProxyRevocable = proxyRevocable(immutableObject, scopeHandler);
+  knownScopeProxies.add(scopeProxyRevocable.proxy);
+
+  // Ensure that "this" resolves to the scope proxy.
+
+  const constants = getScopeConstants(globalObject, localObject);
+  const evaluateFactory = makeEvaluateFactory(constants);
+  const evaluate = apply(evaluateFactory, scopeProxyRevocable.proxy, []);
+
   // Execute the mandatory transforms last to ensure that any rewritten code
   // meets those mandatory requirements.
   source = applyTransforms(source, [
@@ -43,21 +55,10 @@ export const performEval = (
     mandatoryTransforms,
   ]);
 
-  const scopeHandler = createScopeHandler(globalObject, localObject, {
-    sloppyGlobalsMode,
-  });
-  const scopeProxyRevocable = proxyRevocable(immutableObject, scopeHandler);
-  // Ensure that "this" resolves to the scope proxy.
-
-  const constants = getScopeConstants(globalObject, localObject);
-  const evaluateFactory = makeEvaluateFactory(constants);
-  const evaluate = apply(evaluateFactory, scopeProxyRevocable.proxy, []);
-
   scopeHandler.useUnsafeEvaluator = true;
   let err;
   try {
     // Ensure that "this" resolves to the safe global.
-    knownScopeProxies.add(scopeProxyRevocable.proxy);
     return apply(evaluate, globalObject, [source]);
   } catch (e) {
     // stash the child-code error in hopes of debugging the internal failure
