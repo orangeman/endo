@@ -104,3 +104,15 @@ test('makeEvaluate - transforms - rewrite source', t => {
     'localTransforms rewrite source first',
   );
 });
+
+test('makeEvaluate - reference error on missing globals', t => {
+  t.plan(1);
+
+  // eslint-disable-next-line
+  delete globalThis.eval;
+
+  const globalObject = { abc: 123 };
+  const evaluate = makeEvaluate({ globalObject });
+
+  t.throws(() => evaluate('eval'), { instanceOf: ReferenceError });
+});

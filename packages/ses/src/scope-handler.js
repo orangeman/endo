@@ -141,11 +141,11 @@ export const createScopeHandler = (
       // example, in the browser, evaluating 'document = 3', will add
       // a property to globalObject instead of throwing a ReferenceError.
       return (
-        sloppyGlobalsMode ||
-        prop === 'eval' ||
         prop in localObject ||
         prop in globalObject ||
-        prop in globalThis
+        (this.useUnsafeEvaluator && prop === 'eval') ||
+        prop in globalThis || // Make sure the globals are never reachable
+        sloppyGlobalsMode
       );
     },
 
