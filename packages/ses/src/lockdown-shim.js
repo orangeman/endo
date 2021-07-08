@@ -25,7 +25,10 @@ import tameMathObject from './tame-math-object.js';
 import tameRegExpConstructor from './tame-regexp-constructor.js';
 import enablePropertyOverrides from './enable-property-overrides.js';
 import tameLocaleMethods from './tame-locale-methods.js';
-import { initGlobalObject } from './global-object.js';
+import {
+  initGlobalObjectConstants,
+  initGlobalObjectProperties,
+} from './global-object.js';
 import { initialGlobalPropertyNames } from './whitelist.js';
 import { tameFunctionToString } from './tame-function-tostring.js';
 
@@ -263,7 +266,8 @@ export const repairIntrinsics = (
 
   // Initialize the powerful initial global, i.e., the global of the
   // start compartment, from the intrinsics.
-  initGlobalObject(
+  initGlobalObjectConstants(globalThis);
+  initGlobalObjectProperties(
     globalThis,
     intrinsics,
     initialGlobalPropertyNames,
