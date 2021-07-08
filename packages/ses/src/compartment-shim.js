@@ -12,7 +12,7 @@ import {
   getOwnPropertyDescriptors,
 } from './commons.js';
 import { initGlobalObject } from './global-object.js';
-import { performEval } from './evaluate.js';
+import { makeEvaluate } from './evaluate.js';
 import { isValidIdentifierName } from './scope-constants.js';
 import { sharedGlobalPropertyNames } from './whitelist.js';
 import {
@@ -139,11 +139,16 @@ export const CompartmentPrototype = {
       );
     }
 
-    return performEval(source, globalObject, localObject, {
+    const evaluate = makeEvaluate({
+      globalObject,
+      localObject,
       globalTransforms,
-      localTransforms,
       sloppyGlobalsMode,
       knownScopeProxies,
+    });
+
+    return evaluate(source, {
+      localTransforms,
     });
   },
 

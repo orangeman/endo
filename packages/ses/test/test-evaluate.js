@@ -1,51 +1,72 @@
 import '../index.js';
 import './lockdown-safe.js';
 import test from 'ava';
-import { performEval } from '../src/evaluate.js';
+import { makeEvaluate } from '../src/evaluate.js';
 
-test('performEval - sloppyGlobalsMode', t => {
-  t.plan(7);
+test('makeEvaluate - default (non-sloppy, no localObject)', t => {
+  t.plan(6);
+
+  const globalObject = { abc: 123 };
+  const evaluate = makeEvaluate({ globalObject });
+
+  t.is(evaluate('typeof def'), 'undefined', 'typeof non declared global');
+
+  t.throws(
+    () => evaluate('def'),
+    { instanceOf: ReferenceError },
+    'non declared global cause a reference error',
+  );
+
+  t.is(evaluate('abc'), 123, 'globals can be referenced');
+  t.is(
+    evaluate('this.def = abc + 333'),
+    456,
+    'globals can be defined through `this`',
+  );
+  t.is(evaluate('def'), 456, 'defined global persists');
+  t.is(globalObject.def, 456, 'assigned global uses the global object');
+});
+
+test('makeEvaluate - sloppyGlobalsMode', t => {
+  t.plan(5);
 
   const globalObject = {};
-  const endowments = { abc: 123 };
-  const options = { sloppyGlobalsMode: true };
+  const evaluate = makeEvaluate({ globalObject, sloppyGlobalsMode: true });
 
+  t.is(evaluate('typeof def'), 'undefined', 'typeof non declared global');
   t.is(
-    performEval('typeof def', globalObject, {}, options),
-    'undefined',
-    'typeof non declared global',
-  );
-  t.is(
-    performEval('def', globalObject, {}, options),
+    evaluate('def'),
     undefined,
     'non declared global do not cause a reference error',
   );
 
-  t.is(
-    performEval('abc', globalObject, endowments, options),
-    123,
-    'endowments can be referenced',
-  );
-  t.is(
-    performEval('abc', globalObject, {}, options),
-    undefined,
-    'endowments do not persit',
-  );
-  t.is(
-    performEval('def = abc + 333', globalObject, endowments, options),
-    456,
-    'define global',
-  );
-  t.is(
-    performEval('def', globalObject, {}, options),
-    456,
-    'defined global persists',
-  );
+  t.is(evaluate('def = 456'), 456, 'define global through sloppy assignment');
+  t.is(evaluate('def'), 456, 'defined global persists');
   t.is(globalObject.def, 456, 'assigned global uses the global object');
 });
 
-test('performEval - transforms - rewrite source', t => {
-  t.plan(4);
+test('makeEvaluate - endowments', t => {
+  t.plan(3);
+
+  const globalObject = {};
+  const endowments = { abc: 123 };
+  const endowedEvaluate = makeEvaluate({
+    globalObject,
+    localObject: endowments,
+  });
+  const evaluate = makeEvaluate({ globalObject });
+
+  t.is(endowedEvaluate('abc'), 123, 'endowments can be referenced');
+  t.is(endowedEvaluate('abc += 333'), 456, 'endowments can be mutated');
+  t.throws(
+    () => evaluate('abc'),
+    { instanceOf: ReferenceError },
+    'endowments do not affect other evaluate scopes with same globalObject',
+  );
+});
+
+test('makeEvaluate - transforms - rewrite source', t => {
+  t.plan(2);
 
   const globalObject = {};
   const endowments = { abc: 123, def: 456 };
@@ -68,26 +89,16 @@ test('performEval - transforms - rewrite source', t => {
     },
   ];
 
-  t.is(performEval('abc', globalObject, endowments), 123, 'no rewrite');
+  const evaluate = makeEvaluate({
+    globalObject,
+    localObject: endowments,
+    globalTransforms,
+  });
 
+  t.is(evaluate('ABC'), 123, 'globalTransforms rewrite source');
   t.is(
-    performEval('ABC', globalObject, endowments, {
-      globalTransforms,
-    }),
-    123,
-    'globalTransforms rewrite source',
-  );
-  t.is(
-    performEval('ABC', globalObject, endowments, {
+    evaluate('ABC', {
       localTransforms,
-    }),
-    456,
-    'localTransforms rewrite source',
-  );
-  t.is(
-    performEval('ABC', globalObject, endowments, {
-      localTransforms,
-      globalTransforms,
     }),
     456,
     'localTransforms rewrite source first',
