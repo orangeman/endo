@@ -35,9 +35,8 @@ export const initGlobalObjectConstants = globalObject => {
  * @param {Object} newGlobalPropertyNames
  * @param {Function} makeCompartmentConstructor
  * @param {Object} compartmentPrototype
- * @param {Object} [options]
- * @param {Array<Transform>} [options.globalTransforms]
- * @param {(Object) => void} [options.nativeBrander]
+ * @param {(string, Object?) => any} evaluate
+ * @param {(Object) => void} nativeBrander
  */
 export const initGlobalObjectProperties = (
   globalObject,
@@ -45,7 +44,8 @@ export const initGlobalObjectProperties = (
   newGlobalPropertyNames,
   makeCompartmentConstructor,
   compartmentPrototype,
-  { globalTransforms, nativeBrander },
+  evaluate,
+  nativeBrander,
 ) => {
   for (const [name, intrinsicName] of entries(universalPropertyNames)) {
     if (objectHasOwnProperty(intrinsics, intrinsicName)) {
@@ -71,12 +71,8 @@ export const initGlobalObjectProperties = (
 
   const perCompartmentGlobals = {
     globalThis: globalObject,
-    eval: makeEvalFunction(globalObject, {
-      globalTransforms,
-    }),
-    Function: makeFunctionConstructor(globalObject, {
-      globalTransforms,
-    }),
+    eval: makeEvalFunction(evaluate),
+    Function: makeFunctionConstructor(evaluate),
   };
 
   perCompartmentGlobals.Compartment = makeCompartmentConstructor(

@@ -24,15 +24,15 @@ test('globalObject', t => {
 
   const globalObject = {};
   initGlobalObjectConstants(globalObject);
+  const evaluate = (_source, _options) => {};
   initGlobalObjectProperties(
     globalObject,
     intrinsics,
     sharedGlobalPropertyNames,
     makeCompartmentConstructor,
     CompartmentPrototype,
-    {
-      nativeBrander(_) {},
-    },
+    evaluate,
+    _ => {},
   );
 
   t.truthy(globalObject instanceof Object);
